@@ -3,8 +3,8 @@
  * Owns the training loop.
  */
 
-import { ModelConfig, initModel, paramCount, forward } from './engine/model';
-import { softmax } from './engine/tensor';
+import { ModelConfig, initModel, paramCount, forward, ModelWeights, BlockWeights } from './engine/model';
+import { Tensor, softmax } from './engine/tensor';
 import { initAdam, trainStep, ADAM_DEFAULTS, AdamConfig } from './engine/train';
 import { CharTokeniser } from './engine/tokeniser';
 import { generateWithMetadata } from './engine/generate';
@@ -167,6 +167,7 @@ function initDOM() {
   $('btn-train').addEventListener('click', startTraining);
   $('btn-pause').addEventListener('click', pauseTraining);
   $('btn-reset').addEventListener('click', resetAll);
+  $('btn-export').addEventListener('click', exportModel);
 
   // Architecture controls
   setupToggleGroup('heads', [1, 2, 4], archConfig.nHeads, v => {
@@ -519,6 +520,62 @@ function updateCounters(): void {
   $('step-count').textContent = step.toLocaleString();
   const lastLoss = lossCurve['rawData']?.[lossCurve['rawData'].length - 1];
   $('loss-value').textContent = lastLoss !== undefined ? lastLoss.toFixed(3) : '—';
+}
+
+// ---------------------------------------------------------------------------
+// Export model
+// ---------------------------------------------------------------------------
+
+function serializeTensor(t: Tensor): { rows: number; cols: number; data: number[] } {
+  return { rows: t.rows, cols: t.cols, data: Array.from(t.data) };
+}
+
+function serializeBlock(b: BlockWeights) {
+  return {
+    ln1Gamma: serializeTensor(b.ln1Gamma),
+    ln1Beta: serializeTensor(b.ln1Beta),
+    Wq: serializeTensor(b.Wq), Bq: serializeTensor(b.Bq),
+    Wk: serializeTensor(b.Wk), Bk: serializeTensor(b.Bk),
+    Wv: serializeTensor(b.Wv), Bv: serializeTensor(b.Bv),
+    Wo: serializeTensor(b.Wo), Bo: serializeTensor(b.Bo),
+    ln2Gamma: serializeTensor(b.ln2Gamma),
+    ln2Beta: serializeTensor(b.ln2Beta),
+    ff1W: serializeTensor(b.ff1W), ff1B: serializeTensor(b.ff1B),
+    ff2W: serializeTensor(b.ff2W), ff2B: serializeTensor(b.ff2B),
+  };
+}
+
+function exportModel(): void {
+  if (!model || !tokeniser) return;
+
+  const exported = {
+    signetLLM: '1.0',
+    exportedAt: new Date().toISOString(),
+    step,
+    trainingText: ($('training-text') as HTMLTextAreaElement).value,
+    config: model.config,
+    vocab: Object.fromEntries(tokeniser.idxToChar),
+    weights: {
+      tokenEmb: serializeTensor(model.tokenEmb),
+      posEmb: serializeTensor(model.posEmb),
+      blocks: model.blocks.map(serializeBlock),
+      lnFGamma: serializeTensor(model.lnFGamma),
+      lnFBeta: serializeTensor(model.lnFBeta),
+      outputW: serializeTensor(model.outputW),
+      outputB: serializeTensor(model.outputB),
+    },
+  };
+
+  const json = JSON.stringify(exported);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `signet-llm-${step}steps.json`;
+  a.click();
+
+  URL.revokeObjectURL(url);
 }
 
 // ---------------------------------------------------------------------------
