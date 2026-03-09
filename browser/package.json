@@ -1,0 +1,15 @@
+{
+  "name": "signet-llm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "esbuild src/app.ts --bundle --outfile=dist/app.js --sourcemap --watch --serve=8080 --servedir=dist",
+    "build": "esbuild src/app.ts --bundle --outfile=dist/app.js --minify",
+    "test": "node --import tsx src/engine/__tests__/tensor.test.ts"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

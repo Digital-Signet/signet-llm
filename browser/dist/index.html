@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signet LLM — Watch a Language Model Learn</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>S I G N E T &nbsp; L L M</h1>
+    <p class="subtitle">Watch a language model learn.</p>
+  </header>
+
+  <main>
+    <p class="intro">This is a tiny AI that learns to write. Pick some text, hit Train, and watch it figure out language from scratch.</p>
+
+    <!-- Training Data -->
+    <section class="panel" id="data-panel">
+      <h2>Training Data
+        <span class="info-tip">?<span class="info-content">This is the text the model will learn from. It breaks it into individual characters and tries to learn which characters tend to follow which. Pick a preset or paste your own text &mdash; longer text gives the model more to work with.</span></span>
+      </h2>
+      <textarea id="training-text" rows="6" spellcheck="false"></textarea>
+      <div id="presets" class="preset-row"></div>
+    </section>
+
+    <!-- Architecture + Training Controls -->
+    <section class="controls-grid">
+      <div class="control-group">
+        <h3>Architecture <span class="hint">(resets model)</span>
+          <span class="info-tip">?<span class="info-content"><strong>Heads:</strong> How many things the model can pay attention to at once. More heads = more patterns noticed simultaneously.<br><br><strong>Layers:</strong> How many times the model re-processes the text. More layers = deeper understanding, but slower.<br><br><strong>Embed:</strong> The size of each character's internal representation. Bigger = more nuance, but more to learn.<br><br><strong>Context:</strong> How many characters the model can look back at when predicting the next one.</span></span>
+        </h3>
+        <div class="control-row">
+          <label>Heads</label>
+          <div id="heads" class="toggle-group"></div>
+        </div>
+        <div class="control-row">
+          <label>Layers</label>
+          <div id="layers" class="toggle-group"></div>
+        </div>
+        <div class="control-row">
+          <label>Embed</label>
+          <div id="embed" class="toggle-group"></div>
+        </div>
+        <div class="control-row">
+          <label>Context</label>
+          <div id="context" class="toggle-group"></div>
+        </div>
+      </div>
+      <div class="control-group">
+        <h3>Training
+          <span class="info-tip">?<span class="info-content"><strong>Learning rate:</strong> How big a step the model takes each time it learns from a mistake. Too high = unstable, too low = slow progress.<br><br><strong>Temperature:</strong> Controls randomness when the model writes. Low = safe, repetitive choices. High = creative, risky choices.<br><br><strong>Speed:</strong> How many training steps to run per animation frame. Higher = faster training, lower = smoother visualisations.</span></span>
+        </h3>
+        <div class="control-row">
+          <label>Learning rate</label>
+          <input type="range" id="lr-slider" min="0.00001" max="0.01" step="0.00001" value="0.0003">
+          <span id="lr-value" class="slider-value">3e-4</span>
+        </div>
+        <div class="control-row">
+          <label>Temperature</label>
+          <input type="range" id="temp-slider" min="0.1" max="2.0" step="0.1" value="0.8">
+          <span id="temp-value" class="slider-value">0.8</span>
+        </div>
+        <div class="control-row">
+          <label>Speed</label>
+          <input type="range" id="speed-slider" min="5" max="200" step="5" value="50">
+          <span id="speed-value" class="slider-value">50</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls Bar -->
+    <section class="control-bar">
+      <div class="control-bar-left">
+        <button id="btn-train" class="btn btn-primary">&#9654; Train</button>
+        <button id="btn-pause" class="btn btn-primary hidden">&#9646;&#9646; Pause</button>
+        <button id="btn-reset" class="btn btn-secondary">&#8635; Reset</button>
+      </div>
+      <div class="control-bar-right">
+        <span class="stat">Step <strong id="step-count">0</strong>
+          <span class="info-tip">?<span class="info-content">Each step, the model reads a chunk of training text, predicts the next character, checks how wrong it was, and adjusts its weights. Thousands of steps are needed before it learns anything useful.</span></span>
+        </span>
+        <span class="stat">Loss <strong id="loss-value">&mdash;</strong>
+          <span class="info-tip">?<span class="info-content">Loss measures how wrong the model's predictions are. High loss = mostly guessing. Low loss = confident and correct. Watch it drop as the model learns. Small spikes are normal &mdash; some text chunks are harder than others.</span></span>
+        </span>
+        <span class="stat" id="param-count">0 parameters</span>
+      </div>
+    </section>
+
+    <!-- Hero: Typewriter -->
+    <section class="panel" id="typewriter-panel">
+      <h2>What the model writes
+        <span class="info-tip">?<span class="info-content">Every 200 steps, the model tries to write new text by predicting one character at a time. Early on it's pure gibberish. As training progresses, you'll see real words and phrases emerge. Character colour shows confidence: <strong style="color:#fff">white</strong> = sure, <strong style="color:#4fc3f7">blue</strong> = moderate, <strong style="color:#666">grey</strong> = guessing.</span></span>
+      </h2>
+      <div id="typewriter"></div>
+    </section>
+
+    <!-- Loss + Token Probs side by side -->
+    <div class="two-col">
+      <section class="panel" id="loss-panel">
+        <h2>Loss
+          <span class="info-tip">?<span class="info-content">The loss curve shows the model's prediction error over time. It should trend downward as the model learns. The blue line is smoothed to show the trend; occasional spikes are normal and mean the model hit a tricky section of text.</span></span>
+        </h2>
+        <canvas id="loss-canvas"></canvas>
+      </section>
+      <section class="panel" id="probs-panel">
+        <h2>Next token
+          <span class="info-tip">?<span class="info-content">This shows the model's confidence for each possible next character, right now. Tall bars mean high confidence. Early on, the bars are roughly equal (random guessing). As it learns, a few characters will dominate &mdash; the model has opinions about what comes next.</span></span>
+        </h2>
+        <canvas id="probs-canvas"></canvas>
+        <div id="entropy-label" class="entropy-label"></div>
+      </section>
+    </div>
+
+    <!-- Embeddings -->
+    <section class="panel" id="embedding-panel">
+      <h2>Character embeddings
+        <span class="info-tip">?<span class="info-content">Each character gets an internal representation (a list of numbers). This plot projects those representations to 2D so you can see which characters the model considers similar. Characters that appear in similar contexts drift together. Colours: <strong style="color:#4fc3f7">blue</strong> = vowels, <strong style="color:#81c784">green</strong> = consonants, <strong style="color:#ffb74d">amber</strong> = whitespace, <strong style="color:#ce93d8">purple</strong> = punctuation.</span></span>
+      </h2>
+      <canvas id="embedding-canvas"></canvas>
+      <div id="embedding-insights" class="insights-list"></div>
+    </section>
+
+    <!-- Learned Bigrams: chart left, sentences right -->
+    <section class="panel" id="bigram-panel">
+      <h2>Learned bigrams
+        <span class="info-tip tip-left">?<span class="info-content">A bigram is a pair of characters that appear next to each other (like "t" followed by "h"). This heatmap shows which character pairs the model thinks are likely. Brighter cells = stronger associations. The sentences on the right describe the top patterns in plain English.</span></span>
+      </h2>
+      <div class="bigram-split">
+        <div class="bigram-chart">
+          <canvas id="bigram-canvas"></canvas>
+        </div>
+        <div class="bigram-sentences" id="bigram-insights"></div>
+      </div>
+    </section>
+
+    <!-- Attention: full width -->
+    <section class="panel" id="attention-panel">
+      <h2>Attention
+        <span class="info-tip">?<span class="info-content">Attention is how the model decides which earlier characters matter when predicting the next one. Each arc connects two characters &mdash; thicker arcs mean stronger connections. Different heads (colours) can learn different patterns: one might focus on the previous character, while another looks further back for context.</span></span>
+      </h2>
+      <canvas id="attention-canvas"></canvas>
+      <div id="attention-insights" class="insights-list"></div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Hand-rolled transformer in TypeScript. No frameworks, no libraries, just matrix multiplication and gradient descent.</p>
+    <p class="footer-brand"><a href="https://digitalsignet.com" target="_blank" rel="noopener"><img src="logo.png" alt="Digital Signet" class="footer-logo">Digital Signet</a></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
