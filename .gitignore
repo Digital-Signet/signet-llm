@@ -3,4 +3,5 @@ node_modules/
 *.map
 .DS_Store
 Thumbs.db
-marketing/
+.claude/
+*.md
