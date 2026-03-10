@@ -426,12 +426,13 @@ function tick(): void {
 
   // Generate sample every 200 steps
   if (step % 200 < stepsPerFrame) {
-    const seedLen = Math.min(8, archConfig.blockSize);
+    // Use a full blockSize seed from the training text for better context
+    const seedLen = Math.min(archConfig.blockSize, encodedData.length - 1);
     const seedStart = Math.floor(Math.random() * (encodedData.length - seedLen));
     const seed = encodedData.slice(seedStart, seedStart + seedLen);
 
     const { tokens, meta } = generateWithMetadata(
-      model, tokeniser, seed, 150, temperature
+      model, tokeniser, seed, 80, temperature
     );
     const text = tokeniser.decode(tokens.slice(seedLen)); // exclude seed
     typewriter.addSample(step, text, meta);

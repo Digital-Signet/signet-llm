@@ -319,6 +319,9 @@ export function trainStep(
   // Backward
   backward(state, target, model);
 
+  // Gradient clipping (max norm = 1.0)
+  clipGradients(model, 1.0);
+
   // Adam step
   adamStep(model, adam, adamConfig);
 
@@ -326,6 +329,29 @@ export function trainStep(
     loss,
     attentionWeights: state.attentionWeights,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Gradient clipping
+// ---------------------------------------------------------------------------
+
+function clipGradients(model: ModelWeights, maxNorm: number): void {
+  const params = allParams(model);
+  let totalNormSq = 0;
+  for (const p of params) {
+    for (let i = 0; i < p.length; i++) {
+      totalNormSq += p.grad[i] * p.grad[i];
+    }
+  }
+  const totalNorm = Math.sqrt(totalNormSq);
+  if (totalNorm > maxNorm) {
+    const scale = maxNorm / totalNorm;
+    for (const p of params) {
+      for (let i = 0; i < p.length; i++) {
+        p.grad[i] *= scale;
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
