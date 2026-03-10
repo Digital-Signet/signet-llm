@@ -30,12 +30,12 @@ let model: ReturnType<typeof initModel>;
 let adam: ReturnType<typeof initAdam>;
 let adamConfig: AdamConfig = { ...ADAM_DEFAULTS };
 
-let temperature = 0.8;
-let stepsPerFrame = 50;
+let temperature = 0.4;
+let stepsPerFrame = 100;
 
 // Current architecture config
 let archConfig = {
-  dModel: 32,
+  dModel: 64,
   nHeads: 2,
   nLayers: 2,
   blockSize: 64,
