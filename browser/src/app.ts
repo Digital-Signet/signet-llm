@@ -35,7 +35,7 @@ let stepsPerFrame = 100;
 
 // Current architecture config
 let archConfig = {
-  dModel: 64,
+  dModel: 32,
   nHeads: 2,
   nLayers: 2,
   blockSize: 64,
