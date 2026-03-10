@@ -375,14 +375,14 @@ function tick(): void {
 
   let lastLoss = 0;
 
-  for (let i = 0; i < stepsPerFrame; i++) {
-    // Ensure cursor doesn't overrun
-    if (cursor + archConfig.blockSize + 1 > encodedData.length) {
-      cursor = 0;
-    }
+  const maxBatchStart = encodedData.length - archConfig.blockSize - 1;
 
-    const result = trainStep(model, adam, adamConfig, encodedData, cursor);
-    cursor = (cursor + archConfig.blockSize) % (encodedData.length - archConfig.blockSize - 1);
+  for (let i = 0; i < stepsPerFrame; i++) {
+    // Random batch start for better generalisation
+    const batchStart = Math.floor(Math.random() * maxBatchStart);
+
+    const result = trainStep(model, adam, adamConfig, encodedData, batchStart);
+    cursor = batchStart;
     step++;
     lastLoss = result.loss;
     lossCurve.addPoint(result.loss);
